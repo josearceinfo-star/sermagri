@@ -1,7 +1,6 @@
-
 import React from 'react';
 import type { Product, Sale, CashRegisterSession } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
 
 interface DashboardProps {
   sales: Sale[];
@@ -21,7 +20,33 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.Re
   </div>
 );
 
+const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#6EE7B7'];
+
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, outerRadius, percent, name }: any) => {
+    const radius = outerRadius + 20; // Position label outside the slice
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    if (percent < 0.05) return null; // Don't show for tiny slices
+
+    return (
+        <text
+            x={x}
+            y={y}
+            fill="#374151" // text-gray-700
+            textAnchor={x > cx ? 'start' : 'end'}
+            dominantBaseline="central"
+            style={{ fontSize: '12px' }}
+        >
+            {`${name} (${(percent * 100).toFixed(0)}%)`}
+        </text>
+    );
+};
+
+
 export const Dashboard: React.FC<DashboardProps> = ({ sales, products, activeSession }) => {
+  
   const totalRevenue = sales.reduce((acc, sale) => acc + sale.total, 0);
   const totalSales = sales.length;
   const totalProducts = products.length;
@@ -37,11 +62,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products, activeSes
     ? { title: "Caja Abierta", value: "Activa", icon: <CashOpenIcon />, color: "green" }
     : { title: "Caja Cerrada", value: "Inactiva", icon: <CashClosedIcon />, color: "red" };
 
-  const salesData = sales.slice(0, 10).map(s => ({
-      name: new Date(s.date).toLocaleDateString('es-CL'),
-      Ventas: s.total,
-  })).reverse();
+  const salesByDayData = sales.reduce((acc, s) => {
+      const date = new Date(s.date).toLocaleDateString('es-CL');
+      acc[date] = (acc[date] || 0) + s.total;
+      return acc;
+  }, {} as Record<string, number>);
 
+  const barChartData = Object.entries(salesByDayData).map(([date, total]) => ({ name: date, Ventas: total })).slice(-10);
+
+  const salesByCategory = sales.reduce((acc, sale) => {
+    sale.items.forEach(item => {
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+            acc[product.category] = (acc[product.category] || 0) + (item.price * item.quantity);
+        }
+    });
+    return acc;
+  }, {} as Record<string, number>);
+
+  const pieChartData = Object.keys(salesByCategory).map(category => ({
+      name: category,
+      value: salesByCategory[category],
+  })).sort((a,b) => b.value - a.value);
 
   return (
     <div className="space-y-6">
@@ -51,19 +93,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products, activeSes
         <StatCard title="Productos en Inventario" value={totalProducts} icon={<InventoryIcon />} />
         <StatCard title={cashStatus.title} value={cashStatus.value} icon={cashStatus.icon} color={cashStatus.color} />
       </div>
-
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">Últimas Ventas ({totalSales} en total)</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={salesData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString('es-CL')}`} />
-            <Tooltip formatter={(value) => [`$${Number(value).toLocaleString('es-CL')}`, 'Venta']} />
-            <Legend />
-            <Bar dataKey="Ventas" fill="#10B981" />
-          </BarChart>
-        </ResponsiveContainer>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+         <div className="lg:col-span-3 bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">Últimas Ventas ({totalSales} en total)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={barChartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString('es-CL')}`} />
+                <Tooltip formatter={(value) => [`$${Number(value).toLocaleString('es-CL')}`, 'Venta']} />
+                <Legend />
+                <Bar dataKey="Ventas" fill="#10B981" />
+            </BarChart>
+            </ResponsiveContainer>
+        </div>
+        <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">Ventas por Categoría</h3>
+            <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                    <Pie
+                        data={pieChartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={renderCustomizedLabel}
+                        outerRadius={90}
+                        fill="#8884d8"
+                        dataKey="value"
+                        paddingAngle={2}
+                    >
+                        {pieChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `$${Number(value).toLocaleString('es-CL')}`}/>
+                    <Legend wrapperStyle={{ bottom: -5 }} />
+                </PieChart>
+            </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

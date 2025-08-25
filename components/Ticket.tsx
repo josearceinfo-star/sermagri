@@ -1,25 +1,35 @@
-
 import React, { forwardRef } from 'react';
-import type { Sale, Product } from '../types';
+import type { Sale, Product, Client, CompanyInfo } from '../types';
 
 interface TicketProps {
   sale: Sale;
   products: Product[];
+  clients: Client[];
+  companyInfo: CompanyInfo;
 }
 
-export const Ticket = forwardRef<HTMLDivElement, TicketProps>(({ sale, products }, ref) => {
+export const Ticket = forwardRef<HTMLDivElement, TicketProps>(({ sale, products, clients, companyInfo }, ref) => {
   const getProductName = (id: string) => products.find(p => p.id === id)?.name || 'N/A';
   const subtotal = sale.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const iva = subtotal * 0.19;
+  const client = sale.clientId ? clients.find(c => c.id === sale.clientId) : null;
+
 
   return (
-      <div ref={ref} id="ticket-to-print" className="w-[80mm] mx-auto p-4 font-mono text-xs text-black bg-white">
+      <div ref={ref} id="ticket-to-print" className="w-[80mm] mx-auto p-4 font-mono text-[10px] print:text-[10px] text-black bg-white">
         <div className="text-center mb-4">
-          <h1 className="text-lg font-bold">Sermagri</h1>
-          <p>RUT: 76.123.456-7</p>
-          <p>Av. Siempre Viva 742, Santiago</p>
-          <p>www.sermagri.cl</p>
+          <h1 className="text-sm font-bold">{companyInfo.name}</h1>
+          <p>RUT: {companyInfo.rut}</p>
+          <p>{companyInfo.address}</p>
+          <p>{companyInfo.website}</p>
         </div>
+        {client && (
+            <div className="text-left mb-2 border-t border-dashed border-black pt-1">
+                <p><span className="font-semibold">CLIENTE:</span> {client.name}</p>
+                <p><span className="font-semibold">RUT:</span> {client.rut}</p>
+                <p><span className="font-semibold">DIRECCIÓN:</span> {client.address}</p>
+            </div>
+        )}
         <div className="border-t border-b border-dashed border-black py-1 mb-2">
             <p>BOLETA ELECTRÓNICA</p>
             <div className="flex justify-between">
@@ -32,22 +42,20 @@ export const Ticket = forwardRef<HTMLDivElement, TicketProps>(({ sale, products 
         </div>
         <table className="w-full">
             <thead>
-                <tr>
-                    <th className="text-left">CANT</th>
-                    <th className="text-left">DESCRIPCIÓN</th>
-                    <th className="text-right">TOTAL</th>
+                <tr className="border-b border-dashed border-black">
+                    <th className="text-left pb-1">CANT</th>
+                    <th className="text-left pb-1">DESCRIPCIÓN</th>
+                    <th className="text-right pb-1">TOTAL</th>
                 </tr>
             </thead>
             <tbody>
                 {sale.items.map(item => (
-                    <tr key={item.productId}>
-                        <td className="align-top">{item.quantity}</td>
-                        <td>
+                    <tr key={item.productId} className="text-black text-[9px] align-top">
+                        <td className="pr-1 py-0.5">{item.quantity}</td>
+                        <td className="pr-1 py-0.5">
                             {getProductName(item.productId)}
-                            <br/>
-                            <span className="ml-2">@ ${item.price.toLocaleString('es-CL')}</span>
                         </td>
-                        <td className="text-right align-top">${(item.quantity * item.price).toLocaleString('es-CL')}</td>
+                        <td className="text-right py-0.5">${(item.quantity * item.price).toLocaleString('es-CL')}</td>
                     </tr>
                 ))}
             </tbody>
@@ -62,7 +70,7 @@ export const Ticket = forwardRef<HTMLDivElement, TicketProps>(({ sale, products 
                 <span>IVA (19%):</span>
                 <span>${iva.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
             </div>
-             <div className="flex justify-between font-bold text-sm mt-1">
+             <div className="flex justify-between font-bold text-xs mt-1">
                 <span>TOTAL A PAGAR:</span>
                 <span>${sale.total.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
             </div>

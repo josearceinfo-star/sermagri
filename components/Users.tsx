@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { User, Role } from '../types';
 
@@ -32,22 +31,22 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onSave, onClose }) 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6">{user ? 'Editar Usuario' : 'Agregar Usuario'}</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">{user ? 'Editar Usuario' : 'Agregar Usuario'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Nombre</label>
-            <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500" required />
+            <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" required />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Rol</label>
-            <select name="role" value={formData.role} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500">
+            <select name="role" value={formData.role} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500">
                 <option value="user">Vendedor</option>
                 <option value="admin">Administrador</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">{user ? 'Nueva Contraseña (opcional)' : 'Contraseña'}</label>
-            <input type="password" name="password" value={formData.password} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500" required={!user} />
+            <input type="password" name="password" value={formData.password} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500" required={!user} />
           </div>
           <div className="flex justify-end space-x-4 pt-4">
             <button type="button" onClick={onClose} className="py-2 px-4 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>

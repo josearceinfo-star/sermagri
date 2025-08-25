@@ -1,26 +1,20 @@
 
+
 import React from 'react';
 import type { User } from '../types';
 
 interface HeaderProps {
   currentUser: User;
-  users: User[];
-  onSwitchUser: (user: User) => void;
+  onLock: () => void;
+  onSwitchUser?: (user: User) => void; // Keep for potential future use but hide selector
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentUser, users, onSwitchUser }) => {
-
-  const handleUserChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedUser = users.find(u => u.id === e.target.value);
-    if (selectedUser) {
-        onSwitchUser(selectedUser);
-    }
-  };
+export const Header: React.FC<HeaderProps> = ({ currentUser, onLock }) => {
 
   return (
     <header className="flex items-center justify-between h-20 px-6 bg-white border-b border-gray-200 print:hidden">
-      <h2 className="text-2xl font-semibold text-gray-800">Sistema de Bodega y Ventas</h2>
-      <div className="flex items-center space-x-4">
+      <h2 className="text-2xl font-semibold text-gray-800">Sistema de Gestión - Riego e Insumos</h2>
+      <div className="flex items-center space-x-6">
          <div className="relative">
             <span className="absolute top-0 right-0 h-2 w-2 mt-1 mr-1 bg-green-500 rounded-full"></span>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-gray-500">
@@ -35,12 +29,12 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, users, onSwitchUser
                 <span className="font-medium text-gray-700 block leading-tight">{currentUser.name}</span>
                 <span className="text-sm text-gray-600 capitalize">{currentUser.role}</span>
             </div>
-             <select onChange={handleUserChange} value={currentUser.id} className="ml-2 bg-transparent text-sm cursor-pointer focus:outline-none">
-                {users.map(user => (
-                    <option key={user.id} value={user.id}>{user.name}</option>
-                ))}
-            </select>
         </div>
+         <button onClick={onLock} title="Bloquear Sesión" className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+        </button>
       </div>
     </header>
   );

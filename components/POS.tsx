@@ -1,21 +1,32 @@
-
 import React, { useState, useMemo } from 'react';
-import type { Product, SaleItem } from '../types';
+import type { Product, SaleItem, Client } from '../types';
+import { PaymentModal } from './PaymentModal';
 
 interface POSProps {
   products: Product[];
-  onCreateSale: (items: SaleItem[], total: number) => void;
+  clients: Client[];
+  onCreateSale: (items: SaleItem[], total: number, paymentMethod: string, clientId?: string) => void;
   isCashRegisterOpen: boolean;
 }
 
-export const POS: React.FC<POSProps> = ({ products, onCreateSale, isCashRegisterOpen }) => {
+export const POS: React.FC<POSProps> = ({ products, clients, onCreateSale, isCashRegisterOpen }) => {
   const [cart, setCart] = useState<SaleItem[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isClientListOpen, setIsClientListOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const filteredProducts = useMemo(() => 
     products.filter(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) && p.stock > 0
-    ), [products, searchTerm]
+      p.name.toLowerCase().includes(productSearchTerm.toLowerCase()) && p.stock > 0
+    ), [products, productSearchTerm]
+  );
+  
+  const filteredClients = useMemo(() => 
+    clients.filter(c => 
+      c.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) || c.rut.includes(clientSearchTerm)
+    ), [clients, clientSearchTerm]
   );
   
   const addToCart = (product: Product) => {
@@ -45,15 +56,21 @@ export const POS: React.FC<POSProps> = ({ products, onCreateSale, isCashRegister
   const removeFromCart = (productId: string) => {
     setCart(cart.filter(item => item.productId !== productId));
   };
-
-  const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const iva = subtotal * 0.19; // IVA Chile
-  const total = subtotal + iva;
   
-  const handleCreateSale = () => {
+  const handleSelectClient = (client: Client) => {
+    setSelectedClient(client);
+    setClientSearchTerm('');
+    setIsClientListOpen(false);
+  };
+
+  const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  
+  const handleConfirmSale = (paymentMethod: string) => {
     if(cart.length === 0) return;
-    onCreateSale(cart, total);
+    onCreateSale(cart, total, paymentMethod, selectedClient?.id);
     setCart([]);
+    setSelectedClient(null);
+    setIsPaymentModalOpen(false);
   };
 
   const getProductById = (id: string) => products.find(p => p.id === id);
@@ -74,16 +91,16 @@ export const POS: React.FC<POSProps> = ({ products, onCreateSale, isCashRegister
         <input 
           type="text"
           placeholder="Buscar productos..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md mb-4"
+          value={productSearchTerm}
+          onChange={(e) => setProductSearchTerm(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded-md mb-4 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
         />
         <div className="flex-1 overflow-y-auto pr-2">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredProducts.map(product => (
               <div key={product.id} onClick={() => addToCart(product)} className="border rounded-lg p-2 flex flex-col items-center text-center cursor-pointer hover:shadow-lg transition-shadow">
-                <img src={product.imageUrl} alt={product.name} className="w-24 h-24 object-cover rounded-md mb-2" />
-                <p className="text-sm font-semibold text-gray-700">{product.name}</p>
+                <img src={product.imageUrl} alt={product.name} className="w-24 h-24 object-cover rounded-md mb-2 bg-gray-100" />
+                <p className="text-sm font-semibold text-gray-700 flex-grow">{product.name}</p>
                 <p className="text-xs text-gray-600">Stock: {product.stock}</p>
                 <p className="text-sm font-bold text-green-600">${product.price.toLocaleString('es-CL')}</p>
               </div>
@@ -95,7 +112,48 @@ export const POS: React.FC<POSProps> = ({ products, onCreateSale, isCashRegister
       {/* Cart/Sale Details */}
       <div className="w-2/5 bg-white p-4 rounded-lg shadow-md flex flex-col">
         <h3 className="text-xl font-bold mb-4 border-b pb-2">Venta Actual</h3>
-        <div className="flex-1 overflow-y-auto">
+        
+        {/* Client Selector */}
+        <div className="mb-4 relative">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+            {selectedClient ? (
+                <div className="flex items-center justify-between p-2 border rounded-md bg-gray-50">
+                    <div>
+                        <p className="font-semibold text-gray-800">{selectedClient.name}</p>
+                        <p className="text-xs text-gray-500">{selectedClient.rut}</p>
+                    </div>
+                    <button onClick={() => setSelectedClient(null)} className="text-red-500 hover:text-red-700">&times;</button>
+                </div>
+            ) : (
+                <>
+                    <input 
+                        type="text"
+                        placeholder="Buscar cliente por nombre o RUT"
+                        value={clientSearchTerm}
+                        onChange={(e) => {
+                            setClientSearchTerm(e.target.value);
+                            if (!isClientListOpen) setIsClientListOpen(true);
+                        }}
+                        onFocus={() => setIsClientListOpen(true)}
+                        onBlur={() => setTimeout(() => setIsClientListOpen(false), 200)}
+                        className="w-full p-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    {isClientListOpen && (
+                        <ul className="absolute z-10 w-full bg-white border mt-1 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                            {filteredClients.length > 0 ? filteredClients.map(client => (
+                                <li key={client.id} onClick={() => handleSelectClient(client)} className="p-2 hover:bg-gray-100 cursor-pointer text-gray-900">
+                                    {client.name} ({client.rut})
+                                </li>
+                            )) : (
+                                <li className="p-2 text-gray-500">No se encontraron clientes.</li>
+                            )}
+                        </ul>
+                    )}
+                </>
+            )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto border-t pt-2">
           {cart.length === 0 ? (
             <p className="text-gray-600 text-center mt-8">El carro está vacío.</p>
           ) : (
@@ -124,27 +182,26 @@ export const POS: React.FC<POSProps> = ({ products, onCreateSale, isCashRegister
           )}
         </div>
         <div className="border-t pt-4 mt-4 space-y-2">
-          <div className="flex justify-between text-gray-600">
-            <span>Subtotal</span>
-            <span>${subtotal.toLocaleString('es-CL')}</span>
-          </div>
-          <div className="flex justify-between text-gray-600">
-            <span>IVA (19%)</span>
-            <span>${iva.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-          </div>
           <div className="flex justify-between text-xl font-bold text-gray-800">
             <span>Total</span>
             <span>${total.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
           </div>
           <button 
-            onClick={handleCreateSale}
+            onClick={() => setIsPaymentModalOpen(true)}
             disabled={cart.length === 0}
             className="w-full bg-green-600 text-white py-3 rounded-md mt-4 font-bold text-lg hover:bg-green-700 disabled:bg-gray-400"
           >
-            Finalizar Venta
+            Procesar Pago
           </button>
         </div>
       </div>
+       {isPaymentModalOpen && (
+        <PaymentModal
+          totalAmount={total}
+          onClose={() => setIsPaymentModalOpen(false)}
+          onConfirmSale={handleConfirmSale}
+        />
+      )}
     </div>
   );
 };

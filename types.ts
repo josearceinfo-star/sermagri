@@ -1,4 +1,5 @@
 
+
 export type Role = 'admin' | 'user';
 
 export interface User {
@@ -7,6 +8,60 @@ export interface User {
   role: Role;
   password?: string; // Should be hashed in a real app
 }
+
+export interface Client {
+  id:string;
+  name: string;
+  rut: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  rut: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+}
+
+export interface PurchaseItem {
+  productId: string;
+  quantity: number;
+  costPrice: number; // Cost at the time of purchase
+}
+
+export interface Purchase {
+  id: string;
+  supplierId: string;
+  date: string; // ISO string
+  items: PurchaseItem[];
+  total: number;
+}
+
+export interface CompanyInfo {
+    name: string;
+    rut: string;
+    address: string;
+    phone: string;
+    website: string;
+}
+
+export interface SmtpConfig {
+    server: string;
+    port: number;
+    user: string;
+    pass: string; // Should be encrypted
+}
+
+export interface PrinterConfig {
+    paperSize: '80mm' | '58mm';
+    connectionType: 'browser' | 'usb';
+    selectedPrinterId?: string; // ID or name of the selected USB printer
+}
+
 
 export interface Product {
   id: string;
@@ -31,6 +86,8 @@ export interface Sale {
   items: SaleItem[];
   total: number;
   sessionId?: string;
+  clientId?: string;
+  paymentMethod: string;
 }
 
 export interface CashRegisterSession {
@@ -57,7 +114,11 @@ export enum View {
   Inventory = 'inventory',
   Sales = 'sales',
   POS = 'pos',
-  Settings = 'settings',
+  Purchases = 'purchases',
+  Clients = 'clients',
+  Suppliers = 'suppliers',
+  Reports = 'reports',
   Users = 'users',
+  Settings = 'settings',
   CashRegister = 'cash_register'
 }
