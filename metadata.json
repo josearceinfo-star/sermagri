@@ -1,0 +1,5 @@
+{
+  "name": "Sermagri ERP",
+  "description": "A comprehensive Point of Sale (POS) and Inventory Management system for Sermagri. This application facilitates sales transactions, manages product inventory, tracks sales history, and is designed to support local printing of receipts and future integration with Chile's SII for electronic invoicing.",
+  "requestFramePermissions": []
+}
