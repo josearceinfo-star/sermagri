@@ -72,7 +72,11 @@ const App: React.FC = () => {
   const deleteClient = (clientId: string) => setClients(prev => prev.filter(c => c.id !== clientId));
 
   // Supplier Management
-  const addSupplier = (supplier: Omit<Supplier, 'id'>) => setSuppliers(prev => [...prev, { ...supplier, id: `SUP-${Date.now()}` }]);
+  const addSupplier = (supplier: Omit<Supplier, 'id'>): Supplier => {
+    const newSupplier = { ...supplier, id: `SUP-${Date.now()}` };
+    setSuppliers(prev => [...prev, newSupplier]);
+    return newSupplier;
+  };
   const updateSupplier = (updatedSupplier: Supplier) => setSuppliers(prev => prev.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
   const deleteSupplier = (supplierId: string) => setSuppliers(prev => prev.filter(s => s.id !== supplierId));
 
@@ -189,7 +193,7 @@ const App: React.FC = () => {
       case View.Suppliers:
         return <Suppliers suppliers={suppliers} onAddSupplier={addSupplier} onUpdateSupplier={updateSupplier} onDeleteSupplier={deleteSupplier} />;
       case View.Purchases:
-          return <Purchases purchases={purchases} suppliers={suppliers} products={products} onAddPurchase={addPurchase} />;
+          return <Purchases purchases={purchases} suppliers={suppliers} products={products} onAddPurchase={addPurchase} onAddSupplier={addSupplier} />;
       case View.Reports:
           return <Reports sales={sales} products={products} />;
       case View.CashRegister:

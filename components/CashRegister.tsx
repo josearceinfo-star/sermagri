@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import type { CashRegisterSession, Sale, CashTransaction } from '../types';
 
@@ -72,7 +73,7 @@ const OpenRegisterForm: React.FC<{ onOpen: (balance: number) => void }> = ({ onO
                 value={balance}
                 onChange={(e) => setBalance(e.target.value)}
                 placeholder="Monto inicial"
-                className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 bg-white text-gray-900"
                 required
                 min="0"
                 step="any"

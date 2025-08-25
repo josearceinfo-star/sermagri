@@ -1,4 +1,5 @@
 
+
 import React, { useState, FormEvent } from 'react';
 import type { User } from '../types';
 
@@ -70,7 +71,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ currentUser, users, onUn
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Contraseña"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-center"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-center bg-white text-gray-900"
                         autoFocus
                     />
                     {error && <p className="text-red-500 text-sm">{error}</p>}
