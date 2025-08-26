@@ -8,8 +8,29 @@
     "build:react": "vite build",
     "build:electron": "tsc -p tsconfig.node.json",
     "build": "npm run build:react && npm run build:electron",
+    "dist": "npm run build && electron-builder",
     "electron:dev": "npm run build:electron && electron .",
     "start": "concurrently -k \"vite\" \"wait-on tcp:5173 && npm run electron:dev\""
+  },
+  "build": {
+    "appId": "com.sermagri.erp",
+    "productName": "Sermagri ERP Desktop",
+    "files": [
+      "dist",
+      "dist-electron"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "squirrel"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.0",
@@ -30,6 +51,7 @@
     "tailwindcss": "^3.4.3",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
-    "wait-on": "^7.2.0"
+    "wait-on": "^7.2.0",
+    "electron-builder": "^24.13.3"
   }
 }
