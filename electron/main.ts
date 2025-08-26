@@ -66,7 +66,7 @@ ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
 
     const base64Data = imageDataUrl.replace(/^data:image\/png;base64,/, "");
 
-    fs.writeFile(imagePath, base64Data, 'base64', (err) => {
+    fs.writeFile(imagePath, base64Data, 'base64', (err: any) => {
         if (err) {
             console.error("Error saving temp print image:", err);
             return;
@@ -87,7 +87,7 @@ ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
                 </body>
             </html>`;
 
-        fs.writeFile(htmlPath, htmlContent, (writeErr) => {
+        fs.writeFile(htmlPath, htmlContent, (writeErr: any) => {
             if (writeErr) {
                 console.error("Error saving temp print html:", writeErr);
                 return;
@@ -101,15 +101,15 @@ ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
 
                         printWindow.close();
 
-                        fs.unlink(imagePath, (unlinkErr) => {
+                        fs.unlink(imagePath, (unlinkErr: any) => {
                             if (unlinkErr) console.error("Error deleting temp image file:", unlinkErr);
                         });
-                        fs.unlink(htmlPath, (unlinkErr) => {
+                        fs.unlink(htmlPath, (unlinkErr: any) => {
                             if (unlinkErr) console.error("Error deleting temp html file:", unlinkErr);
                         });
                     });
                 });
-            }).catch(loadErr => {
+            }).catch((loadErr: any) => {
                 console.error("Error loading temp print html:", loadErr);
             });
         });
