@@ -120,3 +120,15 @@ export enum View {
   Settings = 'settings',
   CashRegister = 'cash_register'
 }
+
+export interface AppDataState {
+  products: Product[];
+  sales: Sale[];
+  clients: Client[];
+  suppliers: Supplier[];
+  purchases: Purchase[];
+  users: User[];
+  companyInfo: CompanyInfo;
+  smtpConfig: SmtpConfig;
+  printerConfig: PrinterConfig;
+}

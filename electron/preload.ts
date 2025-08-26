@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.send('print-direct', htmlContent, printerName);
   },
   getPrinters: () => ipcRenderer.invoke('get-printers'),
+  loadData: () => ipcRenderer.invoke('load-data'),
+  saveData: (data: any) => ipcRenderer.invoke('save-data', data),
 });
 
 // Forward console logs from renderer to main process for logging
