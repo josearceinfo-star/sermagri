@@ -83,7 +83,7 @@ ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
                     </style>
                 </head>
                 <body>
-                    <img src="${imagePath}">
+                    <img src="file://${imagePath}">
                 </body>
             </html>`;
 
