@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import path from 'path';
-import os from 'os';
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -28,6 +29,12 @@ const createWindow = () => {
     mainWindow.loadURL('http://localhost:5173');
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
+
+    const logStream = fs.createWriteStream('renderer.log', { flags: 'a' });
+
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+      logStream.write(`[${new Date().toISOString()}] [${level}] ${message}\n`);
+    });
   }
   
   // Open links in external browser
@@ -52,18 +59,59 @@ app.on('activate', () => {
 });
 
 // IPC handler for printing
-ipcMain.on('print-direct', (event, htmlContent, printerName) => {
-    const printWindow = new BrowserWindow({ show: false, webPreferences: { nodeIntegration: true, contextIsolation: false } });
+ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
+    const tempDir = app.getPath('temp');
+    const imagePath = path.join(tempDir, `ticket-${Date.now()}.png`);
+    const htmlPath = path.join(tempDir, `print-${Date.now()}.html`);
 
-    printWindow.loadURL("data:text/html;charset=utf-8," + encodeURI(htmlContent));
+    const base64Data = imageDataUrl.replace(/^data:image\/png;base64,/, "");
 
-    printWindow.webContents.on('did-finish-load', () => {
-        // For direct thermal printing, a library like 'electron-pos-printer' might be needed for more control.
-        // This uses the standard print dialog but can print silently to a specific printer if named.
-        printWindow.webContents.print({ deviceName: printerName || undefined, silent: !!printerName }, (success, errorType) => {
-            if (!success) console.log(errorType);
-            // Use close() instead of destroy() for graceful shutdown
-            printWindow.close();
+    fs.writeFile(imagePath, base64Data, 'base64', (err) => {
+        if (err) {
+            console.error("Error saving temp print image:", err);
+            return;
+        }
+
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Print Ticket</title>
+                    <style>
+                        body { margin: 0; padding: 0; }
+                        img { width: 100%; }
+                    </style>
+                </head>
+                <body>
+                    <img src="file://${imagePath}">
+                </body>
+            </html>`;
+
+        fs.writeFile(htmlPath, htmlContent, (writeErr) => {
+            if (writeErr) {
+                console.error("Error saving temp print html:", writeErr);
+                return;
+            }
+
+            const printWindow = new BrowserWindow({ show: false });
+            printWindow.loadFile(htmlPath).then(() => {
+                printWindow.webContents.on('did-finish-load', () => {
+                    printWindow.webContents.print({ deviceName: printerName, silent: true }, (success, errorType) => {
+                        if (!success) console.log(errorType);
+
+                        printWindow.close();
+
+                        fs.unlink(imagePath, (unlinkErr) => {
+                            if (unlinkErr) console.error("Error deleting temp image file:", unlinkErr);
+                        });
+                        fs.unlink(htmlPath, (unlinkErr) => {
+                            if (unlinkErr) console.error("Error deleting temp html file:", unlinkErr);
+                        });
+                    });
+                });
+            }).catch(loadErr => {
+                console.error("Error loading temp print html:", loadErr);
+            });
         });
     });
 });
