@@ -1,7 +1,17 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
-const path = require('path');
-const os = require('os');
-const fs = require('fs');
+import path from 'path';
+import os from 'os';
+import fs from 'fs';
+import log from 'electron-log';
+import isDev from 'electron-is-dev';
+
+// Configure logging
+log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs', 'main.log');
+
+// IPC listener for logs from renderer process
+ipcMain.on('log', (event, level, ...args) => {
+  log[level](...args);
+});
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -12,7 +22,7 @@ let mainWindow: BrowserWindow | null;
 
 const createWindow = () => {
   const preloadScriptPath = path.join(__dirname, 'preload.js');
-  console.log('--- Loading preload script from:', preloadScriptPath);
+  log.info('--- Loading preload script from:', preloadScriptPath);
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -26,20 +36,14 @@ const createWindow = () => {
   });
 
   // Load the app.
-  if (app.isPackaged) {
-    // In production, load the built index.html file.
-    mainWindow.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
-  } else {
+  if (isDev) {
     // In development, load the Vite dev server.
     mainWindow.loadURL('http://localhost:5173');
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
-
-    const logStream = fs.createWriteStream('renderer.log', { flags: 'a' });
-
-    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-      logStream.write(`[${new Date().toISOString()}] [${level}] ${message}\n`);
-    });
+  } else {
+    // In production, load the built index.html file.
+    mainWindow.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
   }
   
   // Open links in external browser
@@ -72,24 +76,27 @@ ipcMain.handle('get-printers', async () => {
     const printers = await mainWindow.webContents.getPrintersAsync();
     return printers;
   } catch (error) {
-    console.error('Failed to get printers:', error);
+    log.error('Failed to get printers:', error);
     return [];
   }
 });
 
 // IPC handler for printing
 ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
+    log.info(`Received print-direct event for printer: ${printerName}`);
     const tempDir = app.getPath('temp');
     const imagePath = path.join(tempDir, `ticket-${Date.now()}.png`);
     const htmlPath = path.join(tempDir, `print-${Date.now()}.html`);
+    log.info(`Using temp paths: ${imagePath}, ${htmlPath}`);
 
     const base64Data = imageDataUrl.replace(/^data:image\/png;base64,/, "");
 
     fs.writeFile(imagePath, base64Data, 'base64', (err: any) => {
         if (err) {
-            console.error("Error saving temp print image:", err);
+            log.error("Error saving temp print image:", err);
             return;
         }
+        log.info("Successfully saved temp print image.");
 
         // Correctly format the file path for use in a URL
         const imageUrl = imagePath.replace(/\\/g, '/');
@@ -111,34 +118,40 @@ ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
 
         fs.writeFile(htmlPath, htmlContent, (writeErr: any) => {
             if (writeErr) {
-                console.error("Error saving temp print html:", writeErr);
+                log.error("Error saving temp print html:", writeErr);
                 return;
             }
+            log.info("Successfully saved temp print html.");
+
 
             const printWindow = new BrowserWindow({ show: false });
 
             printWindow.on('closed', () => {
+                log.info("Print window closed, cleaning up temp files.");
                 // Clean up the temporary files after the window is closed
                 fs.unlink(imagePath, (unlinkErr: any) => {
-                    if (unlinkErr) console.error("Error deleting temp image file:", unlinkErr);
+                    if (unlinkErr) log.error("Error deleting temp image file:", unlinkErr);
                 });
                 fs.unlink(htmlPath, (unlinkErr: any) => {
-                    if (unlinkErr) console.error("Error deleting temp html file:", unlinkErr);
+                    if (unlinkErr) log.error("Error deleting temp html file:", unlinkErr);
                 });
             });
 
             printWindow.loadFile(htmlPath).then(() => {
+                log.info("Temp print html loaded, printing...");
                 printWindow.webContents.on('did-finish-load', () => {
                     printWindow.webContents.print({ deviceName: printerName, silent: true }, (success, errorType) => {
                         if (!success) {
-                            console.log(errorType);
+                            log.error("Printing failed:", errorType);
+                        } else {
+                            log.info("Printing successful.");
                         }
                         // Now we close the window, which will trigger the 'closed' event for cleanup
                         printWindow.close();
                     });
                 });
             }).catch((loadErr: any) => {
-                console.error("Error loading temp print html:", loadErr);
+                log.error("Error loading temp print html:", loadErr);
             });
         });
     });
