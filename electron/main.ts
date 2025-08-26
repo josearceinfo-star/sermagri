@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -28,6 +29,12 @@ const createWindow = () => {
     mainWindow.loadURL('http://localhost:5173');
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
+
+    const logStream = fs.createWriteStream('renderer.log', { flags: 'a' });
+
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+      logStream.write(`[${new Date().toISOString()}] [${level}] ${message}\n`);
+    });
   }
   
   // Open links in external browser
