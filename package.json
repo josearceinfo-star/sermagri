@@ -23,7 +23,7 @@
       "output": "release"
     },
     "win": {
-      "target": "squirrel"
+      "target": "nsis"
     },
     "mac": {
       "target": "dmg"
