@@ -1,5 +1,3 @@
-console.log('--- Preload script successfully executed ---');
-
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electron', {

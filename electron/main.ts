@@ -11,15 +11,12 @@ if (require('electron-squirrel-startup')) {
 let mainWindow: BrowserWindow | null;
 
 const createWindow = () => {
-  const preloadScriptPath = path.join(__dirname, 'preload.js');
-  console.log('--- Loading preload script from:', preloadScriptPath);
-
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.js').replace(/\\/g, '/'),
       nodeIntegration: false,
       contextIsolation: true,
     },
