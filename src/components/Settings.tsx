@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { CompanyInfo, SmtpConfig, PrinterConfig } from '../types';
 
 interface SettingsProps {
@@ -22,9 +22,17 @@ export const Settings: React.FC<SettingsProps> = ({
     const [companyData, setCompanyData] = useState<CompanyInfo>(companyInfo);
     const [smtpData, setSmtpData] = useState<SmtpConfig>(smtpConfig);
     const [printerData, setPrinterData] = useState<PrinterConfig>(printerConfig);
-    
-    // Mock list of printers for the desktop app
-    const availablePrinters = ['EPSON TM-T20II', 'BIXOLON SRP-350plus', 'Generic Thermal Printer'];
+    const [availablePrinters, setAvailablePrinters] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (window.electron) {
+            window.electron.getPrinters().then((printers) => {
+                setAvailablePrinters(printers);
+            }).catch((error) => {
+                console.error('Failed to get printers:', error);
+            });
+        }
+    }, []);
 
 
     const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,7 +158,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     >
                         <option value="">-- Elija una impresora --</option>
                         {availablePrinters.map(printer => (
-                            <option key={printer} value={printer}>{printer}</option>
+                            <option key={printer.name} value={printer.name}>{printer.name}</option>
                         ))}
                     </select>
                      <p className="text-xs text-gray-500 mt-1">Esta lista se poblará con las impresoras conectadas en la aplicación de escritorio (Electron).</p>
