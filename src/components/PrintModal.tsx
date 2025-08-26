@@ -38,29 +38,21 @@ export const PrintModal: React.FC<PrintModalProps> = ({ sale, products, clients,
         const ticketElement = ticketRef.current;
         if (!ticketElement) return;
 
-        // Smart printing logic: Check for Electron environment and USB configuration
         if (printerConfig.connectionType === 'usb' && window.electron) {
-             console.log(`Sending to USB printer: ${printerConfig.selectedPrinterId}`);
-             
-             // Gather all styles to send with the HTML for accurate printing
-             const styles = Array.from(document.styleSheets)
-                .map(styleSheet => {
-                    try {
-                        return Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('');
-                    } catch (e) { 
-                        // Some stylesheets might be cross-origin and inaccessible
-                        console.warn("Could not read stylesheet for printing:", e);
-                        return ''; 
-                    }
-                })
-                .join('\n');
-
-            const printableHtml = `<html><head><style>${styles}</style></head><body>${ticketElement.outerHTML}</body></html>`;
-            window.electron.printDirect(printableHtml, printerConfig.selectedPrinterId);
-            onClose(); // Close modal after sending to print
+            console.log(`Capturing ticket with html2canvas for USB printer: ${printerConfig.selectedPrinterId}`);
+            html2canvas(ticketElement, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                window.electron.printDirect(imgData, printerConfig.selectedPrinterId);
+                onClose(); // Close modal after sending to print
+            }).catch(err => {
+                console.error("Error generating canvas for printing:", err);
+                // As a fallback, we can try the browser's print dialog
+                document.body.classList.add('printing-ticket');
+                window.print();
+                document.body.classList.remove('printing-ticket');
+            });
         } else {
             // Fallback to browser's default print dialog
-            // Add a temporary class to the body to apply print-specific styles
             document.body.classList.add('printing-ticket');
             window.print();
             document.body.classList.remove('printing-ticket');
