@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -15,31 +15,29 @@ import { CashRegister } from './components/CashRegister';
 import { PrintModal } from './components/PrintModal';
 import { LockScreen } from './components/LockScreen';
 import { mockProducts, mockSales, mockUsers, mockClients, mockSuppliers, mockPurchases } from './services/mockData';
+import { dataService } from './services/dataService';
 import { generateDteXml } from './services/siiService';
-import type { Product, Sale, SaleItem, User, CashRegisterSession, CashTransaction, Client, Supplier, Purchase, CompanyInfo, SmtpConfig, PrinterConfig } from './types';
+import type { Product, Sale, SaleItem, User, CashRegisterSession, CashTransaction, Client, Supplier, Purchase, CompanyInfo, SmtpConfig, PrinterConfig, AppDataState } from './types';
 import { View } from './types';
 
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.Dashboard);
+  const [isLoading, setIsLoading] = useState(true);
   
   // App lock state
   const [isLocked, setIsLocked] = useState(false);
 
-  // Data state
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [sales, setSales] = useState<Sale[]>(mockSales);
-  const [clients, setClients] = useState<Client[]>(mockClients);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(mockSuppliers);
-  const [purchases, setPurchases] = useState<Purchase[]>(mockPurchases);
+  // Data state - initialized empty, loaded from file
+  const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>([]);
-  
-  // User Management State
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [currentUser, setCurrentUser] = useState<User>(mockUsers[0]); // Default to admin
-
-  // Settings State
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ name: 'Sermagri', rut: '76.123.456-7', address: 'Av. Siempre Viva 742, Santiago', phone: '+56221234567', website: 'www.sermagri.cl'});
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ name: '', rut: '', address: '', phone: '', website: ''});
   const [smtpConfig, setSmtpConfig] = useState<SmtpConfig>({ server: '', port: 587, user: '', pass: ''});
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig>({ paperSize: '80mm', connectionType: 'usb', selectedPrinterId: '' });
 
@@ -49,7 +47,66 @@ const App: React.FC = () => {
   // Printing State
   const [saleToPrint, setSaleToPrint] = useState<Sale | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+
+  // --- DATA PERSISTENCE ---
   
+  // Load data from file on startup
+  useEffect(() => {
+    const loadAppData = async () => {
+      const loadedData = await dataService.loadData();
+      if (loadedData) {
+        setProducts(loadedData.products);
+        setSales(loadedData.sales);
+        setClients(loadedData.clients);
+        setSuppliers(loadedData.suppliers);
+        setPurchases(loadedData.purchases);
+        setUsers(loadedData.users);
+        setCompanyInfo(loadedData.companyInfo);
+        setSmtpConfig(loadedData.smtpConfig);
+        setPrinterConfig(loadedData.printerConfig);
+        setCurrentUser(loadedData.users[0] || null); // Default to first user
+      } else {
+        // If no data file, initialize with mock data
+        setProducts(mockProducts);
+        setSales(mockSales);
+        setClients(mockClients);
+        setSuppliers(mockSuppliers);
+        setPurchases(mockPurchases);
+        setUsers(mockUsers);
+        setCompanyInfo({ name: 'Sermagri', rut: '76.123.456-7', address: 'Av. Siempre Viva 742, Santiago', phone: '+56221234567', website: 'www.sermagri.cl'});
+        setCurrentUser(mockUsers[0] || null);
+      }
+      setIsLoading(false);
+    };
+    loadAppData();
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // Debounced save data whenever state changes
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    // Don't save on initial data load
+    if (isLoading || isInitialMount.current) {
+        if (!isLoading) {
+            isInitialMount.current = false;
+        }
+        return;
+    }
+
+    const handler = setTimeout(() => {
+      const appData: AppDataState = {
+        products, sales, clients, suppliers, purchases, users,
+        companyInfo, smtpConfig, printerConfig
+      };
+      dataService.saveData(appData);
+      console.log("Data saved.");
+    }, 1000); // Debounce save by 1 second
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [products, sales, clients, suppliers, purchases, users, companyInfo, smtpConfig, printerConfig, isLoading]);
+
+
   // Lock/Unlock Handlers
   const handleLock = () => setIsLocked(true);
   
@@ -61,6 +118,8 @@ const App: React.FC = () => {
     }
     return false;
   };
+
+  // --- CRUD Handlers (These now modify state, which triggers the save useEffect) ---
 
   // User Management Handlers
   const addUser = (user: Omit<User, 'id'>) => setUsers(prev => [...prev, { ...user, id: `USER-${Date.now()}` }]);
@@ -166,6 +225,7 @@ const App: React.FC = () => {
   };
 
   const renderView = () => {
+    if (!currentUser) return <div>Authenticating...</div>; // Or a proper login screen
     // Role-based access control
     if ((view === View.Settings || view === View.Users || view === View.Reports) && currentUser.role !== 'admin') {
       setView(View.Dashboard);
@@ -209,6 +269,14 @@ const App: React.FC = () => {
         return <Dashboard sales={sales} products={products} activeSession={activeSession} />;
     }
   };
+
+  if (isLoading) {
+    return <div className="flex h-screen w-screen items-center justify-center">Loading data...</div>;
+  }
+
+  if (!currentUser) {
+      return <LockScreen currentUser={currentUser} users={users} onUnlock={handleUnlock} />;
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">

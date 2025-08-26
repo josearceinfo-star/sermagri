@@ -67,6 +67,30 @@ app.on('activate', () => {
   }
 });
 
+const dataFilePath = path.join(app.getPath('userData'), 'data.json');
+
+ipcMain.handle('load-data', async () => {
+  try {
+    if (fs.existsSync(dataFilePath)) {
+      const fileContent = await fs.promises.readFile(dataFilePath, 'utf-8');
+      log.info('Data loaded successfully from', dataFilePath);
+      return JSON.parse(fileContent);
+    }
+  } catch (error) {
+    log.error('Error loading data:', error);
+  }
+  log.info('No data file found, will use initial mock data.');
+  return null;
+});
+
+ipcMain.handle('save-data', async (event, data) => {
+  try {
+    await fs.promises.writeFile(dataFilePath, JSON.stringify(data, null, 2));
+  } catch (error) {
+    log.error('Error saving data:', error);
+  }
+});
+
 // IPC handler for getting printers
 ipcMain.handle('get-printers', async () => {
   if (!mainWindow) {
