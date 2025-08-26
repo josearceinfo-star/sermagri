@@ -8,9 +8,14 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+let mainWindow: BrowserWindow | null;
+
 const createWindow = () => {
+  const preloadScriptPath = path.join(__dirname, 'preload.js');
+  console.log('--- Loading preload script from:', preloadScriptPath);
+
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     webPreferences: {
@@ -58,6 +63,20 @@ app.on('activate', () => {
   }
 });
 
+// IPC handler for getting printers
+ipcMain.handle('get-printers', async () => {
+  if (!mainWindow) {
+    return [];
+  }
+  try {
+    const printers = await mainWindow.webContents.getPrintersAsync();
+    return printers;
+  } catch (error) {
+    console.error('Failed to get printers:', error);
+    return [];
+  }
+});
+
 // IPC handler for printing
 ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
     const tempDir = app.getPath('temp');
@@ -72,6 +91,9 @@ ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
             return;
         }
 
+        // Correctly format the file path for use in a URL
+        const imageUrl = imagePath.replace(/\\/g, '/');
+
         const htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -83,7 +105,7 @@ ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
                     </style>
                 </head>
                 <body>
-                    <img src="file://${imagePath}">
+                    <img src="file://${imageUrl}">
                 </body>
             </html>`;
 
@@ -94,19 +116,25 @@ ipcMain.on('print-direct', (event, imageDataUrl, printerName) => {
             }
 
             const printWindow = new BrowserWindow({ show: false });
+
+            printWindow.on('closed', () => {
+                // Clean up the temporary files after the window is closed
+                fs.unlink(imagePath, (unlinkErr: any) => {
+                    if (unlinkErr) console.error("Error deleting temp image file:", unlinkErr);
+                });
+                fs.unlink(htmlPath, (unlinkErr: any) => {
+                    if (unlinkErr) console.error("Error deleting temp html file:", unlinkErr);
+                });
+            });
+
             printWindow.loadFile(htmlPath).then(() => {
                 printWindow.webContents.on('did-finish-load', () => {
                     printWindow.webContents.print({ deviceName: printerName, silent: true }, (success, errorType) => {
-                        if (!success) console.log(errorType);
-
+                        if (!success) {
+                            console.log(errorType);
+                        }
+                        // Now we close the window, which will trigger the 'closed' event for cleanup
                         printWindow.close();
-
-                        fs.unlink(imagePath, (unlinkErr: any) => {
-                            if (unlinkErr) console.error("Error deleting temp image file:", unlinkErr);
-                        });
-                        fs.unlink(htmlPath, (unlinkErr: any) => {
-                            if (unlinkErr) console.error("Error deleting temp html file:", unlinkErr);
-                        });
                     });
                 });
             }).catch((loadErr: any) => {
