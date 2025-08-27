@@ -5,6 +5,9 @@ import fs from 'fs';
 import log from 'electron-log';
 import isDev from 'electron-is-dev';
 
+// Catches unhandled errors and exceptions
+log.catchErrors();
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -51,8 +54,19 @@ app.on('ready', () => {
 
   // 1. Configure logging and data paths
   const userDataPath = app.getPath('userData');
-  log.transports.file.resolvePath = () => path.join(userDataPath, 'logs', 'main.log');
+  const logsPath = path.join(userDataPath, 'logs');
   const dataFilePath = path.join(userDataPath, 'data.json');
+
+  // Defensively create the logs directory
+  try {
+    if (!fs.existsSync(logsPath)) {
+      fs.mkdirSync(logsPath, { recursive: true });
+    }
+  } catch (error) {
+    console.error('Fatal: Could not create logs directory', error);
+  }
+
+  log.transports.file.resolvePath = () => path.join(logsPath, 'main.log');
   log.info('User data path:', userDataPath);
 
 
