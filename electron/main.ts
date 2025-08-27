@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron';
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -44,13 +44,31 @@ const createWindow = () => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  mainWindow.on('close', (event) => {
+    if (isCashRegisterOpen) {
+      event.preventDefault(); // Prevent the window from closing
+      dialog.showMessageBox(mainWindow!, {
+          type: 'warning',
+          title: 'Cierre de Caja Pendiente',
+          message: 'Debe cerrar la caja antes de salir de la aplicación.',
+          buttons: ['OK']
+      });
+    }
+  });
 };
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
+  let isCashRegisterOpen = false;
   // --- All setup that depends on the 'ready' event goes here ---
+
+  // IPC listener for cash register state
+  ipcMain.on('cash-register-state', (event, isOpen: boolean) => {
+    isCashRegisterOpen = isOpen;
+  });
 
   // 1. Configure logging and data paths
   const userDataPath = app.getPath('userData');

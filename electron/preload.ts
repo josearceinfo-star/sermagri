@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electron', {
   getPrinters: () => ipcRenderer.invoke('get-printers'),
   loadData: () => ipcRenderer.invoke('load-data'),
   saveData: (data: any) => ipcRenderer.invoke('save-data', data),
+  notifyCashRegisterState: (isOpen: boolean) => ipcRenderer.send('cash-register-state', isOpen),
 });
 
 // Forward console logs from renderer to main process for logging
