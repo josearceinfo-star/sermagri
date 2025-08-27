@@ -7,7 +7,8 @@
     "dev": "vite",
     "build:react": "vite build",
     "build:electron": "tsc -p tsconfig.node.json",
-    "build": "npm run build:react && npm run build:electron",
+    "clean": "rimraf dist dist-electron release",
+    "build": "npm run clean && npm run build:react && npm run build:electron",
     "dist": "npm run build && electron-builder",
     "electron:dev": "npm run build:electron && electron .",
     "start": "concurrently -k \"vite\" \"wait-on tcp:5173 && npm run electron:dev\""
@@ -43,6 +44,7 @@
     "recharts": "^2.12.7"
   },
   "devDependencies": {
+    "rimraf": "^5.0.0",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",
