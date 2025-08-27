@@ -14,6 +14,7 @@ if (require('electron-squirrel-startup')) {
 }
 
 let mainWindow: BrowserWindow | null;
+let isCashRegisterOpen = false;
 
 const createWindow = () => {
   log.info('Creating main window...');
@@ -62,7 +63,6 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
-  let isCashRegisterOpen = false;
   // --- All setup that depends on the 'ready' event goes here ---
 
   // IPC listener for cash register state
