@@ -52,18 +52,17 @@ const App: React.FC = () => {
     const loadAppData = async () => {
       const loadedData = await dataService.loadData();
       if (loadedData) {
-        setProducts(loadedData.products);
-        setSales(loadedData.sales);
-        setClients(loadedData.clients);
-        setSuppliers(loadedData.suppliers);
-        setPurchases(loadedData.purchases);
-        setUsers(loadedData.users);
+        setProducts(loadedData.products || []);
+        setSales(loadedData.sales || []);
+        setClients(loadedData.clients || []);
+        setSuppliers(loadedData.suppliers || []);
+        setPurchases(loadedData.purchases || []);
+        setUsers(loadedData.users || []);
         setCompanyInfo(loadedData.companyInfo);
         setSmtpConfig(loadedData.smtpConfig);
         setPrinterConfig(loadedData.printerConfig);
         setActiveSession(loadedData.activeSession);
         setCashTransactions(loadedData.cashTransactions || []);
-        // Don't automatically log in. Let the user choose.
       } else {
         // If no data file, initialize with mock data
         setProducts(mockProducts);
@@ -77,12 +76,11 @@ const App: React.FC = () => {
       setIsLoading(false);
     };
     loadAppData();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []);
 
   // Debounced save data whenever state changes
   const isInitialMount = useRef(true);
   useEffect(() => {
-    // Don't save on initial data load
     if (isLoading || isInitialMount.current) {
         if (!isLoading) {
             isInitialMount.current = false;
@@ -97,8 +95,7 @@ const App: React.FC = () => {
         activeSession, cashTransactions
       };
       dataService.saveData(appData);
-      console.log("Data saved.");
-    }, 1000); // Debounce save by 1 second
+    }, 1000);
 
     return () => {
       clearTimeout(handler);
@@ -112,7 +109,8 @@ const App: React.FC = () => {
   }, [activeSession]);
 
 
-  // Lock/Unlock Handlers
+  // --- App Logic Handlers ---
+
   const handleLock = () => setCurrentUser(null);
   
   const handleUnlock = (userToLogin: User, passwordAttempt: string): boolean => {
@@ -123,19 +121,14 @@ const App: React.FC = () => {
     return false;
   };
 
-  // --- CRUD Handlers (These now modify state, which triggers the save useEffect) ---
-
-  // User Management Handlers
   const addUser = (user: Omit<User, 'id'>) => setUsers(prev => [...prev, { ...user, id: `USER-${Date.now()}` }]);
   const updateUser = (updatedUser: User) => setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
   const deleteUser = (userId: string) => setUsers(prev => prev.filter(u => u.id !== userId));
   
-  // Client Management
   const addClient = (client: Omit<Client, 'id'>) => setClients(prev => [...prev, { ...client, id: `CLIENT-${Date.now()}` }]);
   const updateClient = (updatedClient: Client) => setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
   const deleteClient = (clientId: string) => setClients(prev => prev.filter(c => c.id !== clientId));
 
-  // Supplier Management
   const addSupplier = (supplier: Omit<Supplier, 'id'>): Supplier => {
     const newSupplier = { ...supplier, id: `SUP-${Date.now()}` };
     setSuppliers(prev => [...prev, newSupplier]);
@@ -144,7 +137,6 @@ const App: React.FC = () => {
   const updateSupplier = (updatedSupplier: Supplier) => setSuppliers(prev => prev.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
   const deleteSupplier = (supplierId: string) => setSuppliers(prev => prev.filter(s => s.id !== supplierId));
 
-  // Product Management
   const addProduct = (product: Omit<Product, 'id'>) => setProducts(prev => [...prev, { ...product, id: `PROD-${Date.now()}` }]);
   const addMultipleProducts = (newProducts: Omit<Product, 'id'>[]) => {
       const productsToAdd = newProducts.map(p => ({...p, id: `PROD-${Date.now()}-${Math.random()}`}));
@@ -153,11 +145,9 @@ const App: React.FC = () => {
   const updateProduct = (updatedProduct: Product) => setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
   const deleteProduct = (productId: string) => setProducts(prev => prev.filter(p => p.id !== productId));
   
-  // Purchase Management
   const addPurchase = (purchase: Omit<Purchase, 'id'>) => {
       const newPurchase = { ...purchase, id: `PUR-${Date.now()}`};
       setPurchases(prev => [newPurchase, ...prev]);
-      // Update stock
       setProducts(prevProducts => {
           const updatedProducts = [...prevProducts];
           newPurchase.items.forEach(item => {
@@ -170,7 +160,6 @@ const App: React.FC = () => {
       });
   };
 
-  // Sale & Cash Register Handlers
   const openCashRegister = (openingBalance: number) => {
     if (activeSession || !currentUser) return;
     const newSession: CashRegisterSession = {
@@ -204,7 +193,7 @@ const App: React.FC = () => {
   };
   
   const createSale = (items: SaleItem[], total: number, paymentMethod: string, clientId?: string) => {
-    if (!activeSession) return;
+    if (!activeSession || !currentUser) return;
     const newSale: Sale = { id: `SALE-${Date.now()}`, date: new Date().toISOString(), items, total, paymentMethod, sessionId: activeSession.id, clientId };
     
     const client = clientId ? clients.find(c => c.id === clientId) : null;
@@ -213,7 +202,6 @@ const App: React.FC = () => {
     console.log(dteXml);
 
     setSales(prev => [newSale, ...prev]);
-    // Update stock
     setProducts(prevProducts => {
       const newProducts = [...prevProducts];
       items.forEach(item => {
@@ -234,8 +222,8 @@ const App: React.FC = () => {
   };
 
   const renderView = () => {
-    if (!currentUser) return <div>Authenticating...</div>; // Or a proper login screen
-    // Role-based access control
+    if (!currentUser) return null; // Should be handled by top-level return
+
     if ((view === View.Settings || view === View.Users || view === View.Reports || view === View.CashRegister) && currentUser.role !== 'admin') {
       setView(View.Dashboard);
       return <Dashboard sales={sales} products={products} activeSession={activeSession} />;
