@@ -9,8 +9,12 @@ import isDev from 'electron-is-dev';
 log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs', 'main.log');
 
 // IPC listener for logs from renderer process
-ipcMain.on('log', (event, level, ...args) => {
-  log[level](...args);
+type LogLevel = 'info' | 'warn' | 'error';
+ipcMain.on('log', (event, level: LogLevel, ...args) => {
+  // Ensure the level is one of the expected types before calling
+  if (['info', 'warn', 'error'].includes(level)) {
+    log[level](...args);
+  }
 });
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
