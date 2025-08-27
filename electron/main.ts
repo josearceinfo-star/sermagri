@@ -197,6 +197,11 @@ app.on('ready', () => {
   createWindow();
 });
 
+app.on('before-quit', (event) => {
+    if (isCashRegisterOpen) {
+        event.preventDefault();
+    }
+});
 
 app.on('window-all-closed', () => {
   if (os.platform() !== 'darwin') {

@@ -10,7 +10,7 @@
     "clean": "rimraf dist dist-electron release",
     "build": "npm run clean && npm run build:react && npm run build:electron",
     "dist": "npm run build && electron-builder",
-    "electron:dev": "npm run build:electron && electron .",
+    "electron:dev": "npm run build:electron && electron dist-electron/electron/main.js",
     "start": "concurrently -k \"vite\" \"wait-on tcp:5173 && npm run electron:dev\""
   },
   "build": {

@@ -38,7 +38,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ currentUser, users, onUn
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50 backdrop-blur-sm">
       <div className="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl p-8 text-center">
-        {isSwitchingUser ? (
+        {isSwitchingUser || !selectedUser ? (
             <>
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Seleccionar Usuario</h2>
                 <div className="space-y-3">
