@@ -1,12 +1,12 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import log from 'electron-log';
 import isDev from 'electron-is-dev';
 
-// Catches unhandled errors and exceptions
-log.catchErrors();
+// Catches unhandled errors and exceptions and shows a dialog
+log.catchErrors({ showDialog: true });
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -62,8 +62,10 @@ app.on('ready', () => {
     if (!fs.existsSync(logsPath)) {
       fs.mkdirSync(logsPath, { recursive: true });
     }
-  } catch (error) {
-    console.error('Fatal: Could not create logs directory', error);
+  } catch (error: any) {
+    dialog.showErrorBox('Fatal Startup Error', `Could not create logs directory.\nPlease ensure you have permissions for this folder:\n${logsPath}\n\nError: ${error.message}`);
+    app.quit();
+    return;
   }
 
   log.transports.file.resolvePath = () => path.join(logsPath, 'main.log');
@@ -88,18 +90,30 @@ app.on('ready', () => {
         log.info('Data loaded successfully from', dataFilePath);
         return JSON.parse(fileContent);
       }
-    } catch (error) {
+    } catch (error: any) {
       log.error('Error loading data:', error);
+      dialog.showErrorBox('Error Loading Data', `Could not read the data file.\n\nError: ${error.message}`);
     }
     log.info('No data file found, will use initial mock data.');
     return null;
   });
 
+  let hasShownSaveSuccess = false;
   ipcMain.handle('save-data', async (event, data) => {
     try {
       await fs.promises.writeFile(dataFilePath, JSON.stringify(data, null, 2));
-    } catch (error) {
+      if (!hasShownSaveSuccess) {
+        dialog.showMessageBox({
+          type: 'info',
+          title: 'Success',
+          message: 'Data has been saved successfully for the first time.',
+          detail: `Your data is being saved to:\n${dataFilePath}`
+        });
+        hasShownSaveSuccess = true;
+      }
+    } catch (error: any) {
       log.error('Error saving data:', error);
+      dialog.showErrorBox('Error Saving Data', `Could not write to the data file.\n\nPlease ensure you have permissions for this folder:\n${dataFilePath}\n\nError: ${error.message}`);
     }
   });
 
