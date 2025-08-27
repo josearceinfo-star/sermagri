@@ -16,6 +16,12 @@ if (require('electron-squirrel-startup')) {
 let mainWindow: BrowserWindow | null;
 let isCashRegisterOpen = false;
 
+// IPC listener for cash register state.
+// This is at the top level to ensure it's registered before the renderer can send messages.
+ipcMain.on('cash-register-state', (event, isOpen: boolean) => {
+  isCashRegisterOpen = isOpen;
+});
+
 const createWindow = () => {
   log.info('Creating main window...');
   // Create the browser window.
@@ -46,6 +52,7 @@ const createWindow = () => {
     return { action: 'deny' };
   });
 
+  // Handle window close event
   mainWindow.on('close', (event) => {
     if (isCashRegisterOpen) {
       event.preventDefault(); // Prevent the window from closing
@@ -63,13 +70,6 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
-  // --- All setup that depends on the 'ready' event goes here ---
-
-  // IPC listener for cash register state
-  ipcMain.on('cash-register-state', (event, isOpen: boolean) => {
-    isCashRegisterOpen = isOpen;
-  });
-
   // 1. Configure logging and data paths
   const userDataPath = app.getPath('userData');
   const logsPath = path.join(userDataPath, 'logs');
@@ -90,7 +90,7 @@ app.on('ready', () => {
   log.info('User data path:', userDataPath);
 
 
-  // 2. Register all IPC handlers
+  // 2. Register all IPC handlers that depend on the 'ready' state
 
   // IPC listener for logs from renderer process
   type LogLevel = 'info' | 'warn' | 'error';
