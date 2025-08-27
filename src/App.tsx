@@ -24,9 +24,6 @@ import { View } from './types';
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.Dashboard);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // App lock state
-  const [isLocked, setIsLocked] = useState(false);
 
   // Data state - initialized empty, loaded from file
   const [products, setProducts] = useState<Product[]>([]);
@@ -65,8 +62,8 @@ const App: React.FC = () => {
         setSmtpConfig(loadedData.smtpConfig);
         setPrinterConfig(loadedData.printerConfig);
         setActiveSession(loadedData.activeSession);
-        setCashTransactions(loadedData.cashTransactions);
-        setCurrentUser(loadedData.users[0] || null); // Default to first user
+        setCashTransactions(loadedData.cashTransactions || []);
+        // Don't automatically log in. Let the user choose.
       } else {
         // If no data file, initialize with mock data
         setProducts(mockProducts);
@@ -76,7 +73,6 @@ const App: React.FC = () => {
         setPurchases(mockPurchases);
         setUsers(mockUsers);
         setCompanyInfo({ name: 'Sermagri', rut: '76.123.456-7', address: 'Av. Siempre Viva 742, Santiago', phone: '+56221234567', website: 'www.sermagri.cl'});
-        setCurrentUser(mockUsers[0] || null);
       }
       setIsLoading(false);
     };
@@ -111,12 +107,11 @@ const App: React.FC = () => {
 
 
   // Lock/Unlock Handlers
-  const handleLock = () => setIsLocked(true);
+  const handleLock = () => setCurrentUser(null);
   
   const handleUnlock = (userToLogin: User, passwordAttempt: string): boolean => {
     if (userToLogin.password === passwordAttempt) {
       setCurrentUser(userToLogin);
-      setIsLocked(false);
       return true;
     }
     return false;
@@ -278,12 +273,12 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-      return <LockScreen currentUser={currentUser} users={users} onUnlock={handleUnlock} />;
+    return <LockScreen currentUser={currentUser} users={users} onUnlock={handleUnlock} />;
   }
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentView={view} setView={setView} userRole={currentUser.role}/>
+      <Sidebar currentView={view} setView={setView} userRole={currentUser.role} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header currentUser={currentUser} onLock={handleLock} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
@@ -291,19 +286,18 @@ const App: React.FC = () => {
         </main>
       </div>
       {isPrintModalOpen && saleToPrint && (
-        <PrintModal 
-            sale={saleToPrint} 
-            products={products} 
-            clients={clients}
-            companyInfo={companyInfo}
-            printerConfig={printerConfig}
-            onClose={() => {
-                setIsPrintModalOpen(false);
-                setSaleToPrint(null);
-            }} 
+        <PrintModal
+          sale={saleToPrint}
+          products={products}
+          clients={clients}
+          companyInfo={companyInfo}
+          printerConfig={printerConfig}
+          onClose={() => {
+            setIsPrintModalOpen(false);
+            setSaleToPrint(null);
+          }}
         />
       )}
-      {isLocked && <LockScreen currentUser={currentUser} users={users} onUnlock={handleUnlock} />}
     </div>
   );
 };
