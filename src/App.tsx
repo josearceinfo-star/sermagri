@@ -105,6 +105,12 @@ const App: React.FC = () => {
     };
   }, [products, sales, clients, suppliers, purchases, users, companyInfo, smtpConfig, printerConfig, activeSession, cashTransactions, isLoading]);
 
+  // Notify main process about cash register state for close prevention
+  useEffect(() => {
+    const isOpen = !!activeSession && !activeSession.endDate;
+    (window as any).electron.notifyCashRegisterState(isOpen);
+  }, [activeSession]);
+
 
   // Lock/Unlock Handlers
   const handleLock = () => setCurrentUser(null);
@@ -166,10 +172,15 @@ const App: React.FC = () => {
 
   // Sale & Cash Register Handlers
   const openCashRegister = (openingBalance: number) => {
-    if (activeSession) return;
+    if (activeSession || !currentUser) return;
     const newSession: CashRegisterSession = {
-        id: `SESSION-${Date.now()}`, startDate: new Date().toISOString(), endDate: null,
-        openingBalance, closingBalance: null, countedBalance: null,
+        id: `SESSION-${Date.now()}`,
+        userId: currentUser.id,
+        startDate: new Date().toISOString(),
+        endDate: null,
+        openingBalance,
+        closingBalance: null,
+        countedBalance: null,
     };
     setActiveSession(newSession);
     setView(View.POS);
@@ -225,7 +236,7 @@ const App: React.FC = () => {
   const renderView = () => {
     if (!currentUser) return <div>Authenticating...</div>; // Or a proper login screen
     // Role-based access control
-    if ((view === View.Settings || view === View.Users || view === View.Reports) && currentUser.role !== 'admin') {
+    if ((view === View.Settings || view === View.Users || view === View.Reports || view === View.CashRegister) && currentUser.role !== 'admin') {
       setView(View.Dashboard);
       return <Dashboard sales={sales} products={products} activeSession={activeSession} />;
     }

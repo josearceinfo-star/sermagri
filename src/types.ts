@@ -90,6 +90,7 @@ export interface Sale {
 
 export interface CashRegisterSession {
   id: string;
+  userId: string;
   startDate: string; // ISO string
   endDate: string | null;
   openingBalance: number;
