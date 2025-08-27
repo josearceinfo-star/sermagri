@@ -64,6 +64,8 @@ const App: React.FC = () => {
         setCompanyInfo(loadedData.companyInfo);
         setSmtpConfig(loadedData.smtpConfig);
         setPrinterConfig(loadedData.printerConfig);
+        setActiveSession(loadedData.activeSession);
+        setCashTransactions(loadedData.cashTransactions);
         setCurrentUser(loadedData.users[0] || null); // Default to first user
       } else {
         // If no data file, initialize with mock data
@@ -95,7 +97,8 @@ const App: React.FC = () => {
     const handler = setTimeout(() => {
       const appData: AppDataState = {
         products, sales, clients, suppliers, purchases, users,
-        companyInfo, smtpConfig, printerConfig
+        companyInfo, smtpConfig, printerConfig,
+        activeSession, cashTransactions
       };
       dataService.saveData(appData);
       console.log("Data saved.");
@@ -104,7 +107,7 @@ const App: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [products, sales, clients, suppliers, purchases, users, companyInfo, smtpConfig, printerConfig, isLoading]);
+  }, [products, sales, clients, suppliers, purchases, users, companyInfo, smtpConfig, printerConfig, activeSession, cashTransactions, isLoading]);
 
 
   // Lock/Unlock Handlers

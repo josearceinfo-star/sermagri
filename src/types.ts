@@ -131,4 +131,6 @@ export interface AppDataState {
   companyInfo: CompanyInfo;
   smtpConfig: SmtpConfig;
   printerConfig: PrinterConfig;
+  activeSession: CashRegisterSession | null;
+  cashTransactions: CashTransaction[];
 }
