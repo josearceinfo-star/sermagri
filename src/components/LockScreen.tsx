@@ -2,19 +2,24 @@ import React, { useState, FormEvent } from 'react';
 import type { User } from '../types';
 
 interface LockScreenProps {
-  currentUser: User;
+  currentUser: User | null;
   users: User[];
   onUnlock: (user: User, passwordAttempt: string) => boolean;
 }
 
 export const LockScreen: React.FC<LockScreenProps> = ({ currentUser, users, onUnlock }) => {
-  const [selectedUser, setSelectedUser] = useState<User>(currentUser);
+  const [selectedUser, setSelectedUser] = useState<User | null>(currentUser);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isSwitchingUser, setIsSwitchingUser] = useState(false);
+  // If there's no current user, force user selection. Otherwise, show locked screen.
+  const [isSwitchingUser, setIsSwitchingUser] = useState(!currentUser);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (!selectedUser) {
+        setError('Por favor, seleccione un usuario.');
+        return;
+    }
     setError('');
     const success = onUnlock(selectedUser, password);
     if (!success) {
